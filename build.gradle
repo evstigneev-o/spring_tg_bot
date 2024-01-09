@@ -15,8 +15,12 @@ repositories {
 	mavenCentral()
 }
 
+def
+	tgBots = '6.8.0'
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation "org.telegram:telegrambots:${tgBots}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
