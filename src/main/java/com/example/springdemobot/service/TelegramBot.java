@@ -25,7 +25,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             switch (messageText) {
                 case "/start" -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                default -> unsupportedCommandReceived(chatId);
+                default -> unsupportedCommandReceived(chatId,messageText);
             }
         }
     }
@@ -36,9 +36,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, answer);
     }
 
-    private void unsupportedCommandReceived(long chatId){
-        String answer = "Sorry, command is not support now";
-        log.info("Unsupported command was called");
+    private void unsupportedCommandReceived(long chatId, String command){
+        String answer = "Sorry, this command is not support now";
+        log.info("Unsupported command was called -" + command);
         sendMessage(chatId, answer);
     }
 
