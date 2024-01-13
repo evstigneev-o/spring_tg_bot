@@ -19,7 +19,7 @@ import java.util.List;
 public class TelegramBot extends TelegramLongPollingBot {
     static final String HELP_TEXT = """
             Бот создан для обучения использования SpringBoot и telegramBots
-            Краткое описание используемых комманд:\s
+            Краткое описание используемых команд:\s
             /start - персонализированное приветственное сообщение
             /mydata - получение сохраненной информации о текущем пользователе
             /editdata - очистка информации о текущем пользователе
