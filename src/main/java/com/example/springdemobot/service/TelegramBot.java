@@ -17,12 +17,14 @@ import java.util.List;
 @Component
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
-    static final String HELP_TEXT = "Бот создан для обучения использования SpringBoot и telegramBots\n" +
-            "Краткое описание используемых комманд: \n" +
-            "/start - персонализированное приветственное сообщение\n" +
-            "/mydata - получение сохраненной информации о текущем пользователе\n" +
-            "/editdata - очистка информации о текущем пользователе\n" +
-            "/help - показ данного сообщения снова \n";
+    static final String HELP_TEXT = """
+            Бот создан для обучения использования SpringBoot и telegramBots
+            Краткое описание используемых комманд:\s
+            /start - персонализированное приветственное сообщение
+            /mydata - получение сохраненной информации о текущем пользователе
+            /editdata - очистка информации о текущем пользователе
+            /help - показ данного сообщения снова\s
+            """;
     final BotConfig config;
 
     public TelegramBot(BotConfig config) {
