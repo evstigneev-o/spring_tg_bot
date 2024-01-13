@@ -1,6 +1,7 @@
 package com.example.springdemobot.service;
 
 import com.example.springdemobot.config.BotConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -8,6 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
+@Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
     final BotConfig config;
 
@@ -23,13 +25,20 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             switch (messageText) {
                 case "/start" -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                default -> sendMessage(chatId, "Sorry, command is not support now");
+                default -> unsupportedCommandReceived(chatId,messageText);
             }
         }
     }
 
     private void startCommandReceived(long chatId, String userFirstName) {
-        String answer = "Hi, " + userFirstName + " nice to meet you!";
+        String answer = "Hi, " + userFirstName + ", nice to meet you!";
+        log.info("Replied to user " + userFirstName + " on /start");
+        sendMessage(chatId, answer);
+    }
+
+    private void unsupportedCommandReceived(long chatId, String command){
+        String answer = "Sorry, this command is not support now";
+        log.info("Unsupported command was called -" + command);
         sendMessage(chatId, answer);
     }
 
@@ -45,7 +54,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            log.error("Error occurred: " + e.getMessage());
         }
     }
 }
