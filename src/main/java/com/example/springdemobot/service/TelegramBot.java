@@ -76,7 +76,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/help" -> helpCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 case "register" -> register(update.getMessage());
                 case "check my data" -> getUserById(chatId);
-                case "delete my data" -> sendMessage(chatId, "ты хочешь удалить записи");
+                case "delete my data" -> deleteUser(chatId);
                 default -> unsupportedCommandReceived(chatId, messageText);
             }
         } else if (update.hasCallbackQuery()) {
@@ -94,6 +94,18 @@ public class TelegramBot extends TelegramLongPollingBot {
                 executeEditMessageText(text, chatId, messageId);
                 log.info("NO button tapped");
             }
+        }
+    }
+
+    private void deleteUser(long chatId) {
+        if (userRepository.existsById(chatId)) {
+            userRepository.deleteById(chatId);
+            prepareAndSendMessage(chatId,"Пользователь успешно удален");
+            log.info("Successfully delete user " + chatId);
+        } else {
+            String text = "Такого пользователя не существует";
+            prepareAndSendMessage(chatId, text);
+            log.info("Try to delete non created user: " + chatId);
         }
     }
 
@@ -143,6 +155,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             prepareAndSendMessage(chatId, "Пользователь " + user.getUserName() + " сохранен");
         } else {
             prepareAndSendMessage(chatId, "Такой пользователь уже существует");
+            log.info("User with charId " + chatId + " has already been created");
         }
 
     }

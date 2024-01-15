@@ -9,7 +9,6 @@ import java.sql.Timestamp;
 
 @Entity(name = "UsersDataTable")
 @Data
-@ToString
 public class User {
     @Id
     private Long chatId;
@@ -18,5 +17,12 @@ public class User {
     private String userName;
     private Timestamp registeredAt;
 
-
+    @Override
+    public String toString() {
+        return "Идентификатор пользователя: " + chatId +
+                ", Имя: " + firstName +
+                ", Фамилия: " + lastName +
+                ", Никнейм: " + userName +
+                ", Дата регистрации: " + registeredAt;
+    }
 }
