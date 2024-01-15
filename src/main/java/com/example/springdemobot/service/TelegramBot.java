@@ -24,6 +24,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -38,6 +39,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     static final String REGISTER = "register";
     static final String CHECK_MY_DATA = "check my data";
     static final String DELETE_MY_DATA = "delete my data";
+    static final String USER_NOT_FOUND = "Такого пользователя не существует";
     static final String HELP_TEXT = """
             Бот создан для обучения использования SpringBoot и telegramBots
             Краткое описание используемых команд:\s
@@ -54,16 +56,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig config) {
         super(config.getToken());
         this.config = config;
-        List<BotCommand> commands = new ArrayList<>();
-        commands.add(new BotCommand(START, "Начало работы с ботом"));
-        commands.add(new BotCommand(HELP, "Как пользоваться ботом"));
-        commands.add(new BotCommand(SETTINGS, "Настройки"));
-        try {
-            this.execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
-        } catch (TelegramApiException e) {
-            log.error("Error setting bot's command list: " + e.getMessage());
-        }
+        setBotCommands();
     }
+
+
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -99,6 +95,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void setBotCommands() {
+        List<BotCommand> commands = new ArrayList<>();
+        commands.add(new BotCommand(START, "Начало работы с ботом"));
+        commands.add(new BotCommand(HELP, "Как пользоваться ботом"));
+        commands.add(new BotCommand(SETTINGS, "Настройки"));
+        try {
+            this.execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            log.error("Error setting bot's command list: " + e.getMessage());
+        }
+    }
+
     private void sendMassMessage(String messageText) {
         var text = messageText.substring(messageText.indexOf(" "));
         var users = userRepository.findAll();
@@ -111,17 +119,21 @@ public class TelegramBot extends TelegramLongPollingBot {
             prepareAndSendMessage(chatId,"Пользователь успешно удален");
             log.info("Successfully delete user " + chatId);
         } else {
-            String text = "Такого пользователя не существует";
-            prepareAndSendMessage(chatId, text);
+            prepareAndSendMessage(chatId, USER_NOT_FOUND);
             log.info("Try to delete non created user: " + chatId);
         }
     }
 
     private void getUserById(long chatId) {
-        String text = "Вот что мы нашли по тебе: ";
-        prepareAndSendMessage(chatId, text);
-        String userInfo = userRepository.findById(chatId).toString();
-        prepareAndSendMessage(chatId, userInfo);
+        Optional<User> user = userRepository.findById(chatId);
+        if(user.isPresent()){
+            String userInfo =  user.get().toString();
+            String text = "Вот что мы нашли о тебе: ";
+            prepareAndSendMessage(chatId, text + "\n" + userInfo);
+        } else {
+            prepareAndSendMessage(chatId,USER_NOT_FOUND);
+        }
+
     }
 
     private void register(Message msg) {
@@ -162,7 +174,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.info("user saved: " + user);
             prepareAndSendMessage(chatId, "Пользователь " + user.getUserName() + " сохранен");
         } else {
-            prepareAndSendMessage(chatId, "Такой пользователь уже существует");
+            prepareAndSendMessage(chatId, "Такой пользователь уже сохранен");
             log.info("User with charId " + chatId + " has already been created");
         }
 
