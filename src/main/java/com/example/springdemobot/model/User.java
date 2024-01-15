@@ -3,7 +3,6 @@ package com.example.springdemobot.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Data;
-import lombok.ToString;
 
 import java.sql.Timestamp;
 

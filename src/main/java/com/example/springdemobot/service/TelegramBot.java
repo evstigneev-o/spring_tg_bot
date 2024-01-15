@@ -31,12 +31,20 @@ public class TelegramBot extends TelegramLongPollingBot {
     static final String YES_BUTTON = "YES_BUTTON";
     static final String NO_BUTTON = "NO_BUTTON";
     static final String ERROR_TEXT = "Error occurred: ";
+    static final String START = "/start";
+    static final String HELP = "/help";
+    static final String SETTINGS = "/settings";
+    static final String SEND = "/send";
+    static final String REGISTER = "register";
+    static final String CHECK_MY_DATA = "check my data";
+    static final String DELETE_MY_DATA = "delete my data";
     static final String HELP_TEXT = """
             Бот создан для обучения использования SpringBoot и telegramBots
             Краткое описание используемых команд:\s
             /start - персонализированное приветственное сообщение
-            /mydata - получение сохраненной информации о текущем пользователе
-            /editdata - очистка информации о текущем пользователе
+            register - сохранение данных о пользователе
+            check my data - получение сохраненной информации о текущем пользователе
+            delete my data - очистка информации о текущем пользователе
             /help - показ данного сообщения снова\s
             """;
     final BotConfig config;
@@ -47,11 +55,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         super(config.getToken());
         this.config = config;
         List<BotCommand> commands = new ArrayList<>();
-        commands.add(new BotCommand("/start", "Начало работы с ботом"));
-        commands.add(new BotCommand("/mydata", "Информация о пользователе"));
-        commands.add(new BotCommand("/editdata", "Изменение данных о пользователе"));
-        commands.add(new BotCommand("/help", "Как пользоваться этим ботом"));
-        commands.add(new BotCommand("/settings", "Настройки"));
+        commands.add(new BotCommand(START, "Начало работы с ботом"));
+        commands.add(new BotCommand(HELP, "Как пользоваться ботом"));
+        commands.add(new BotCommand(SETTINGS, "Настройки"));
         try {
             this.execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -64,19 +70,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-            if (messageText.contains("/send ")) {
-                var text = messageText.substring(messageText.indexOf(" "));
-                var users = userRepository.findAll();
-                users.forEach(u -> prepareAndSendMessage(u.getChatId(), text));
+            if (messageText.contains(SEND)) {
+                sendMassMessage(messageText);
             }
             switch (messageText) {
-                case "/start" -> {
-                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                }
-                case "/help" -> helpCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                case "register" -> register(update.getMessage());
-                case "check my data" -> getUserById(chatId);
-                case "delete my data" -> deleteUser(chatId);
+                case START -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                case HELP -> helpCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                case REGISTER -> register(update.getMessage());
+                case CHECK_MY_DATA -> getUserById(chatId);
+                case DELETE_MY_DATA -> deleteUser(chatId);
                 default -> unsupportedCommandReceived(chatId, messageText);
             }
         } else if (update.hasCallbackQuery()) {
@@ -95,6 +97,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("NO button tapped");
             }
         }
+    }
+
+    private void sendMassMessage(String messageText) {
+        var text = messageText.substring(messageText.indexOf(" "));
+        var users = userRepository.findAll();
+        users.forEach(u -> prepareAndSendMessage(u.getChatId(), text));
     }
 
     private void deleteUser(long chatId) {
@@ -167,13 +175,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(long chatId, String userFirstName) {
         String answer = EmojiParser.parseToUnicode("Привет, " + userFirstName + "! рад видеть тебя! :call_me_hand:"); //from https://emojipedia.org/
-
         log.info("Replied to user " + userFirstName + " on /start");
         sendMessage(chatId, answer);
     }
 
     private void unsupportedCommandReceived(long chatId, String command) {
-        if (!command.contains("/send")) {
+        if (!command.contains(SEND)) {
             String answer = "Извините, данная команда не поддерживается";
             log.info("Unsupported command was called -" + command);
             prepareAndSendMessage(chatId, answer);
@@ -193,9 +200,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow keyboardRow = new KeyboardRow();
-        keyboardRow.add("register");
-        keyboardRow.add("check my data");
-        keyboardRow.add("delete my data");
+        keyboardRow.add(REGISTER);
+        keyboardRow.add(CHECK_MY_DATA);
+        keyboardRow.add(DELETE_MY_DATA);
         keyboardRows.add(keyboardRow);
         keyboardMarkup.setKeyboard(keyboardRows);
         message.setReplyMarkup(keyboardMarkup);
