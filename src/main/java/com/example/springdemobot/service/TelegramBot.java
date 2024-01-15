@@ -30,6 +30,7 @@ import java.util.List;
 public class TelegramBot extends TelegramLongPollingBot {
     static final String YES_BUTTON = "YES_BUTTON";
     static final String NO_BUTTON = "NO_BUTTON";
+    static final String ERROR_TEXT = "Error occurred: ";
     static final String HELP_TEXT = """
             Бот создан для обучения использования SpringBoot и telegramBots
             Краткое описание используемых команд:\s
@@ -66,15 +67,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (messageText.contains("/send ")) {
                 var text = messageText.substring(messageText.indexOf(" "));
                 var users = userRepository.findAll();
-                users.forEach(u -> sendMessage(u.getChatId(), text));
+                users.forEach(u -> prepareAndSendMessage(u.getChatId(), text));
             }
             switch (messageText) {
                 case "/start" -> {
-                    registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 }
                 case "/help" -> helpCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                case "register" -> register(chatId);
+                case "register" -> register(update.getMessage());
+                case "check my data" -> getUserById(chatId);
+                case "delete my data" -> sendMessage(chatId, "ты хочешь удалить записи");
                 default -> unsupportedCommandReceived(chatId, messageText);
             }
         } else if (update.hasCallbackQuery()) {
@@ -82,20 +84,29 @@ public class TelegramBot extends TelegramLongPollingBot {
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             if (callbackData.equals(YES_BUTTON)) {
-                String text = "Ты нажал ДА";
+                String text = "Сохраняю данные";
                 executeEditMessageText(text, chatId, messageId);
                 log.info("YES button tapped");
+                saveUser(update.getCallbackQuery().getMessage());
+
             } else if (callbackData.equals(NO_BUTTON)) {
-                String text = "Ты нажал НЕТ";
+                String text = "Отказ от сохранения данных";
                 executeEditMessageText(text, chatId, messageId);
                 log.info("NO button tapped");
             }
         }
     }
 
-    private void register(long chatId) {
+    private void getUserById(long chatId) {
+        String text = "Вот что мы нашли по тебе: ";
+        prepareAndSendMessage(chatId, text);
+        String userInfo = userRepository.findById(chatId).toString();
+        prepareAndSendMessage(chatId, userInfo);
+    }
+
+    private void register(Message msg) {
         SendMessage message = new SendMessage();
-        message.setChatId(chatId);
+        message.setChatId(msg.getChatId());
         message.setText("Ты точно хочешь зарегистрироваться?");
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -114,12 +125,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(inlineKeyboardMarkup);
 
         executeMessage(message);
-        log.info("Command /register was called");
+        log.info("Command register was called");
     }
 
-    private void registerUser(Message message) {
-        if (userRepository.findById(message.getChatId()).isEmpty()) {
-            var chatId = message.getChatId();
+    private void saveUser(Message message) {
+        var chatId = message.getChatId();
+        if (!userRepository.existsById(chatId)) {
             var chat = message.getChat();
             User user = new User();
             user.setChatId(chatId);
@@ -129,12 +140,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
             userRepository.save(user);
             log.info("user saved: " + user);
+            prepareAndSendMessage(chatId, "Пользователь " + user.getUserName() + " сохранен");
+        } else {
+            prepareAndSendMessage(chatId, "Такой пользователь уже существует");
         }
+
     }
 
     private void helpCommandReceived(long chatId, String userFirstName) {
         log.info("Help was called " + userFirstName);
-        sendMessage(chatId, HELP_TEXT);
+        prepareAndSendMessage(chatId, HELP_TEXT);
     }
 
     private void startCommandReceived(long chatId, String userFirstName) {
@@ -148,7 +163,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (!command.contains("/send")) {
             String answer = "Извините, данная команда не поддерживается";
             log.info("Unsupported command was called -" + command);
-            sendMessage(chatId, answer);
+            prepareAndSendMessage(chatId, answer);
         }
     }
 
@@ -174,6 +189,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(message);
     }
 
+    private void prepareAndSendMessage(long chatId, String text) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(text);
+        executeMessage(message);
+    }
+
     private void executeEditMessageText(String text, long chatId, long messageId) {
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId);
@@ -182,7 +204,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error(ERROR_TEXT + e.getMessage());
         }
     }
 
@@ -190,7 +212,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error(ERROR_TEXT + e.getMessage());
         }
     }
 }
