@@ -1,11 +1,13 @@
 package com.example.springdemobot.service;
 
 import com.example.springdemobot.config.BotConfig;
+import com.example.springdemobot.model.AdsRepository;
 import com.example.springdemobot.model.User;
 import com.example.springdemobot.model.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -52,6 +54,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     final BotConfig config;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AdsRepository adsRepository;
 
     public TelegramBot(BotConfig config) {
         super(config.getToken());
@@ -108,7 +112,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendMassMessage(String messageText) {
-        var text = messageText.substring(messageText.indexOf(" "));
+        var text = messageText.contains(SEND) ? messageText.substring(messageText.indexOf(" ")) : messageText;
         var users = userRepository.findAll();
         users.forEach(u -> prepareAndSendMessage(u.getChatId(), text));
     }
@@ -246,5 +250,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             log.error(ERROR_TEXT + e.getMessage());
         }
+    }
+    @Scheduled(cron = "${cron.scheduler}")
+    private void sendAds(){
+        var ads = adsRepository.findAll();
+        ads.forEach(ad -> sendMassMessage(ad.getAd()));
     }
 }
